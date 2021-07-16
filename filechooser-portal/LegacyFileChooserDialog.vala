@@ -60,7 +60,9 @@ public class Files.LegacyFileChooserDialog : Object {
         /* If not local only during creation, strange bug occurs on fresh installs */
         chooser_dialog.local_only = true;
 
-        var chooser_settings = new Settings ("io.elementary.files.file-chooser");
+        SettingsSchemaSource sss = new SettingsSchemaSource.from_directory ("@ELEMENTARY_FILES_GSETTINGS_PATH@", SettingsSchemaSource.get_default (), true);
+        SettingsSchema chooser_schema = sss.lookup ("io.elementary.files.file-chooser", false);
+        var chooser_settings = new Settings.full (chooser_schema, null, null);
 
         action_area = (Gtk.ButtonBox) chooser_dialog.get_action_area ();
 
