@@ -90,7 +90,9 @@ namespace Files.View.Chrome {
         }
 
         private void on_search_results_cursor_changed (GLib.File? file) {
-            schedule_focus_file_request (file);
+            if (file != null) {
+                schedule_focus_file_request (file);
+            }
         }
 
         private void on_search_results_realize () {
@@ -285,6 +287,10 @@ namespace Files.View.Chrome {
         }
 
         private void check_home () {
+            if (!((Gtk.Window)(get_toplevel ())).has_toplevel_focus) {
+                return;
+            }
+
             try {
                 bread.hide_breadcrumbs = GLib.Filename.from_uri (displayed_path) == Environment.get_home_dir ();
             } catch (Error e) {

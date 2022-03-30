@@ -425,7 +425,7 @@ public class Files.File : GLib.Object {
 
         if (gicon != null) {
             icon = Files.IconInfo.lookup (gicon, size, scale);
-            if (icon != null && icon.is_fallback ()) {
+            if (icon == null || icon.is_fallback ()) {
                 icon = Files.IconInfo.get_generic_icon (size, scale);
             }
         } else {
@@ -569,7 +569,6 @@ public class Files.File : GLib.Object {
         permissions = info.get_attribute_uint32 (GLib.FileAttribute.UNIX_MODE);
         owner = info.get_attribute_string (GLib.FileAttribute.OWNER_USER);
         group = info.get_attribute_string (GLib.FileAttribute.OWNER_GROUP);
-
         if (info.has_attribute (GLib.FileAttribute.UNIX_UID)) {
             uid = info.get_attribute_uint32 (GLib.FileAttribute.UNIX_UID);
             if (owner == null) {
@@ -577,6 +576,8 @@ public class Files.File : GLib.Object {
             }
         } else if (owner != null) { /* e.g. ftp info yields owner but not uid */
             uid = int.parse (owner);
+        } else {
+            owner = null;
         }
 
         if (info.has_attribute (GLib.FileAttribute.UNIX_GID)) {
@@ -586,6 +587,8 @@ public class Files.File : GLib.Object {
             }
         } else if (group != null) { /* e.g. ftp info yields owner but not uid */
             gid = int.parse (group);
+        } else {
+            group = null;
         }
 
         if (info.has_attribute (GLib.FileAttribute.MOUNTABLE_CAN_UNMOUNT)) {
@@ -638,10 +641,10 @@ public class Files.File : GLib.Object {
 
     public void query_thumbnail_update () {
         /* Silently ignore invalid requests */
-        if (pix_size <= 1 || pix_scale <= 0)
+        if (pix_size <= 1 || pix_scale <= 0) {
             return;
-
-        if (get_thumbnail_path () == null) {
+        }
+        if (get_thumbnail_path () == null && thumbstate == ThumbState.READY) {
             var md5_hash = GLib.Checksum.compute_for_string (GLib.ChecksumType.MD5, uri);
             var base_name = "%s.png".printf (md5_hash);
 
@@ -671,33 +674,43 @@ public class Files.File : GLib.Object {
     }
 
     public unowned string? get_thumbnail_path () {
+        unowned string? path = null;
         if (thumbnail_path != null) {
-            return thumbnail_path;
+            path = thumbnail_path;
         } else if (info != null && info.has_attribute (GLib.FileAttribute.THUMBNAIL_PATH)) {
-            return info.get_attribute_byte_string (GLib.FileAttribute.THUMBNAIL_PATH);
+            path = info.get_attribute_byte_string (GLib.FileAttribute.THUMBNAIL_PATH);
         }
 
-        return null;
+        return path;
     }
 
     public bool can_set_owner () {
         /* unknown file uid */
-        if (uid == -1)
-            return false;
+        if (uid == -1 ||
+            owner == null ||
+            uid == uint.parse (owner) ||
+            is_trashed ()) {
 
+            return false;
+        }
         /* root */
         return Posix.geteuid () == 0;
     }
 
     public bool can_set_group () {
-        if (gid == -1)
+        if (gid == -1 ||
+            group == null ||
+            gid == uint.parse (group) ||
+            is_trashed ()) {
+
             return false;
+        }
 
         var user_id = Posix.geteuid ();
-
         /* Owner is allowed to set group (with restrictions). */
-        if (user_id == uid)
+        if (user_id == uid) {
             return true;
+        }
 
         /* Root is also allowed to set group. */
         if (user_id == 0)
@@ -707,7 +720,15 @@ public class Files.File : GLib.Object {
     }
 
     public bool can_set_permissions () {
-        if (uid != -1 && location.is_native ()) {
+        if (uid == -1 ||
+            owner == null ||
+            uid == uint.parse (owner) ||
+            is_trashed ()) {
+
+            return false;
+        }
+
+        if (location.is_native ()) {
             /* Check the user. */
             Posix.uid_t user_id = Posix.geteuid ();
             /* Owner is allowed to set permissions. */

@@ -68,10 +68,6 @@ public class Files.Application : Gtk.Application {
     public override void startup () {
         base.startup ();
 
-        if (Granite.Services.Logger.DisplayLevel != Granite.Services.LogLevel.DEBUG) {
-            Granite.Services.Logger.DisplayLevel = Granite.Services.LogLevel.INFO;
-        }
-
         init_schemas ();
 
         Gtk.IconTheme.get_default ().changed.connect (() => {
@@ -130,7 +126,6 @@ public class Files.Application : Gtk.Application {
             return 1;
         };
 
-        message ("Report any issues/bugs you might find to https://github.com/elementary/files/issues");
         this.hold ();
         int result = _command_line (cmd);
         this.release ();
@@ -188,7 +183,7 @@ public class Files.Application : Gtk.Application {
 
         /* Handle arguments */
         if (debug) {
-            Granite.Services.Logger.DisplayLevel = Granite.Services.LogLevel.DEBUG;
+            GLib.Environment.set_variable ("G_MESSAGES_DEBUG", "all", false);
         }
 
         if (version) {
