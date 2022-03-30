@@ -15,7 +15,7 @@ i18n = import('i18n')
 # Define the global directories and variables
 #
 plugin_dir = join_paths(get_option('prefix'), get_option('libdir'), meson.project_name(), 'plugins')
-terminal_name = 'pantheon-terminal'
+terminal_name = 'io.elementary.terminal'
 
 add_project_arguments(
     ['-DGETTEXT_PACKAGE="' + meson.project_name() + '"',
